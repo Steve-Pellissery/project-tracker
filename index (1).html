@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Client & Project Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --sidebar-w: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 28px 24px 20px; border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); line-height: 1.3; }
+  .sidebar-logo span { font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 0.05em; }
+  nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  nav a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500;
+    margin-bottom: 2px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  }
+  nav a:hover { background: var(--surface2); color: var(--text); }
+  nav a.active { background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(124,92,252,0.15)); color: var(--accent); border-color: rgba(79,142,247,0.2); }
+  nav a svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-section { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); padding: 12px 12px 6px; text-transform: uppercase; }
+
+  /* MAIN */
+  #main { margin-left: var(--sidebar-w); flex: 1; padding: 36px 40px; min-height: 100vh; }
+  .page { display: none; animation: fadeIn 0.2s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 28px; }
+  .page-header h2 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); }
+  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px;
+    position: relative; overflow: hidden;
+  }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .metric-card.total::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.yellow::before { background: var(--yellow); }
+  .metric-card.red::before { background: var(--red); }
+  .metric-label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .metric-value { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; margin-top: 6px; }
+  .metric-card.total .metric-value { color: var(--accent); }
+  .metric-card.green .metric-value { color: var(--green); }
+  .metric-card.yellow .metric-value { color: var(--yellow); }
+  .metric-card.red .metric-value { color: var(--red); }
+
+  /* FILTER ROW */
+  .filter-row { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+  .filter-row label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 13px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .empty-state { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+  .badge.green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge.green::before { background: var(--green); }
+  .badge.yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge.yellow::before { background: var(--yellow); }
+  .badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge.red::before { background: var(--red); }
+
+  /* FORMS */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; max-width: 640px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px;
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select option { background: var(--surface2); }
+  .multiselect { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .multi-option {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .multi-option.selected { background: rgba(79,142,247,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 22px; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-search { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-search:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ALERTS */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-top: 16px; }
+  .alert.success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+  .alert.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+  .alert.info { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); }
+  .alert.warning { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); color: var(--yellow); }
+
+  /* DETAIL CARD */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .detail-item { background: var(--surface2); border-radius: 8px; padding: 14px 16px; }
+  .detail-item .detail-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .detail-item .detail-value { font-size: 14px; color: var(--text); }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* SEARCH BAR */
+  .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+  .search-bar input { flex: 1; max-width: 400px; }
+
+  /* CHECKBOX */
+  .confirm-check { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; }
+  .confirm-check input { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; }
+  .confirm-check span { font-size: 13px; color: var(--muted); }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 48px; color: var(--muted); font-size: 14px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SELECT WITH PROJECT LIST */
+  .select-wrap { position: relative; }
+  select { appearance: none; -webkit-appearance: none; }
+  .select-wrap::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 12px; }
+
+  input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
+
+  @media (max-width: 900px) {
+    :root { --sidebar-w: 200px; }
+    #main { padding: 24px 20px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <h1>Project & Client<br>Management</h1>
+    <span>Team Dashboard</span>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a onclick="showPage('view-projects')" class="active" id="nav-view-projects">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      View Projects
+    </a>
+    <a onclick="showPage('search-project')" id="nav-search-project">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Search Project
+    </a>
+    <a onclick="showPage('project-details')" id="nav-project-details">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Project Details
+    </a>
+
+    <div class="nav-section">Manage</div>
+    <a onclick="showPage('add-project')" id="nav-add-project">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Project
+    </a>
+    <a onclick="showPage('add-intern')" id="nav-add-intern">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Add Intern
+    </a>
+    <a onclick="showPage('assign-intern')" id="nav-assign-intern">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Assign Intern
+    </a>
+    <a onclick="showPage('assign-focus')" id="nav-assign-focus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Assign Focus Areas
+    </a>
+    <a onclick="showPage('add-rock')" id="nav-add-rock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Add ROCK
+    </a>
+
+    <div class="nav-section">Danger</div>
+    <a onclick="showPage('delete-project')" id="nav-delete-project">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      Delete Project
+    </a>
+  </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+
+  <!-- VIEW PROJECTS -->
+  <div class="page active" id="page-view-projects">
+    <div class="page-header">
+      <h2>Project Dashboard</h2>
+      <p>Overview of all active client projects</p>
+    </div>
+    <div class="metrics">
+      <div class="metric-card total"><div class="metric-label">Total Projects</div><div class="metric-value" id="m-total">—</div></div>
+      <div class="metric-card green"><div class="metric-label">Green</div><div class="metric-value" id="m-green">—</div></div>
+      <div class="metric-card yellow"><div class="metric-label">Yellow</div><div class="metric-value" id="m-yellow">—</div></div>
+      <div class="metric-card red"><div class="metric-label">Red</div><div class="metric-value" id="m-red">—</div></div>
+    </div>
+    <div class="filter-row">
+      <label>Filter by Category:</label>
+      <div class="select-wrap">
+        <select id="category-filter" onchange="filterProjects()" style="padding:8px 32px 8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px;">
+          <option value="All">All Categories</option>
+          <option value="SBDC">SBDC</option>
+          <option value="MGMT5792">MGMT5792</option>
+          <option value="CCG">CCG</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap" id="projects-table-wrap">
+      <div class="loading"><div class="spinner"></div>Loading projects...</div>
+    </div>
+  </div>
+
+  <!-- SEARCH PROJECT -->
+  <div class="page" id="page-search-project">
+    <div class="page-header">
+      <h2>Search Projects</h2>
+      <p>Find a project by business name</p>
+    </div>
+    <div class="search-bar">
+      <div class="form-group" style="flex:1;max-width:400px;">
+        <input type="text" id="search-input" placeholder="Enter business name..." onkeydown="if(event.key==='Enter') searchProject()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;width:100%;"/>
+      </div>
+      <button class="btn btn-search" onclick="searchProject()" style="align-self:flex-end;">Search</button>
+    </div>
+    <div id="search-results"></div>
+  </div>
+
+  <!-- PROJECT DETAILS -->
+  <div class="page" id="page-project-details">
+    <div class="page-header">
+      <h2>Project Details</h2>
+      <p>Full information for a selected project</p>
+    </div>
+    <div class="form-group" style="max-width:400px;margin-bottom:20px;">
+      <label>Select Project</label>
+      <div class="select-wrap">
+        <select id="detail-project-select" onchange="loadProjectDetails()" style="padding:10px 32px 10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;width:100%;">
+          <option value="">Loading projects...</option>
+        </select>
+      </div>
+    </div>
+    <div id="project-details-content"></div>
+  </div>
+
+  <!-- ADD PROJECT -->
+  <div class="page" id="page-add-project">
+    <div class="page-header">
+      <h2>Add New Project</h2>
+      <p>Create a new client project record</p>
+    </div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group"><label>Business Name *</label><input type="text" id="ap-business" placeholder="e.g. ABC Consulting"/></div>
+        <div class="form-group"><label>Client Name *</label><input type="text" id="ap-client" placeholder="e.g. John Smith"/></div>
+        <div class="form-group"><label>Advisor Name</label><input type="text" id="ap-advisor" placeholder="e.g. Prof. Al Aloussi"/></div>
+        <div class="form-group"><label>Client Tier</label><input type="text" id="ap-tier" placeholder="e.g. Tier 1"/></div>
+        <div class="form-group">
+          <label>Category *</label>
+          <div class="select-wrap"><select id="ap-category"><option value="SBDC">SBDC</option><option value="MGMT5792">MGMT5792</option><option value="CCG">CCG</option></select></div>
+        </div>
+        <div class="form-group"><label>Revenue ($)</label><input type="number" id="ap-revenue" placeholder="0.00" min="0" step="100"/></div>
+        <div class="form-group">
+          <label>Project Status *</label>
+          <div class="select-wrap"><select id="ap-status"><option value="Green">Green</option><option value="Yellow">Yellow</option><option value="Red">Red</option></select></div>
+        </div>
+        <div class="form-group"><label>Key Technology</label><input type="text" id="ap-tech" placeholder="e.g. Excel, Power BI"/></div>
+        <div class="form-group full"><label>Client Engagement</label><textarea id="ap-engagement" placeholder="Describe client engagement..."></textarea></div>
+        <div class="form-group full"><label>SOW Reference</label><input type="text" id="ap-sow" placeholder="SOW filename or reference"/></div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="addProject()">Add Project</button>
+      </div>
+      <div id="ap-msg"></div>
+    </div>
+  </div>
+
+  <!-- ADD INTERN -->
+  <div class="page" id="page-add-intern">
+    <div class="page-header">
+      <h2>Add New Intern</h2>
+      <p>Register an intern in the system</p>
+    </div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group"><label>Intern Name *</label><input type="text" id="ai-name" placeholder="Full name"/></div>
+        <div class="form-group"><label>Intern Email</label><input type="email" id="ai-email" placeholder="email@example.com"/></div>
+        <div class="form-group full"><label>Intern Role</label><input type="text" id="ai-role" placeholder="e.g. Data Analyst Intern"/></div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="addIntern()">Add Intern</button>
+      </div>
+      <div id="ai-msg"></div>
+    </div>
+  </div>
+
+  <!-- ASSIGN INTERN -->
+  <div class="page" id="page-assign-intern">
+    <div class="page-header">
+      <h2>Assign Intern to Project</h2>
+      <p>Link an intern to an existing project</p>
+    </div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Select Project</label>
+          <div class="select-wrap"><select id="asi-project"><option>Loading...</option></select></div>
+        </div>
+        <div class="form-group full">
+          <label>Select Intern</label>
+          <div class="select-wrap"><select id="asi-intern"><option>Loading...</option></select></div>
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="assignIntern()">Assign Intern</button>
+      </div>
+      <div id="asi-msg"></div>
+    </div>
+  </div>
+
+  <!-- ASSIGN FOCUS AREAS -->
+  <div class="page" id="page-assign-focus">
+    <div class="page-header">
+      <h2>Assign Focus Areas</h2>
+      <p>Tag a project with relevant focus areas</p>
+    </div>
+    <div class="form-card">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Select Project</label>
+        <div class="select-wrap"><select id="af-project"><option>Loading...</option></select></div>
+      </div>
+      <div class="form-group">
+        <label>Focus Areas (select all that apply)</label>
+        <div class="multiselect" id="af-focus-options">
+          <div class="multi-option" onclick="toggleFocus(this)" data-id="1">Financing</div>
+          <div class="multi-option" onclick="toggleFocus(this)" data-id="2">Accounting</div>
+          <div class="multi-option" onclick="toggleFocus(this)" data-id="3">Marketing</div>
+          <div class="multi-option" onclick="toggleFocus(this)" data-id="4">Sales</div>
+          <div class="multi-option" onclick="toggleFocus(this)" data-id="5">Operations</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="assignFocusAreas()">Assign Focus Areas</button>
+      </div>
+      <div id="af-msg"></div>
+    </div>
+  </div>
+
+  <!-- ADD ROCK -->
+  <div class="page" id="page-add-rock">
+    <div class="page-header">
+      <h2>Add ROCK / OKR</h2>
+      <p>Add a goal or key result to a project</p>
+    </div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Select Project</label>
+          <div class="select-wrap"><select id="ar-project"><option>Loading...</option></select></div>
+        </div>
+        <div class="form-group full"><label>Objective *</label><textarea id="ar-objective" placeholder="What is the goal?"></textarea></div>
+        <div class="form-group full"><label>Key Result *</label><textarea id="ar-keyresult" placeholder="How will you measure success?"></textarea></div>
+        <div class="form-group">
+          <label>Status</label>
+          <div class="select-wrap"><select id="ar-status"><option value="Green">Green</option><option value="Yellow">Yellow</option><option value="Red">Red</option></select></div>
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="addRock()">Add ROCK</button>
+      </div>
+      <div id="ar-msg"></div>
+    </div>
+  </div>
+
+  <!-- DELETE PROJECT -->
+  <div class="page" id="page-delete-project">
+    <div class="page-header">
+      <h2>Delete Project</h2>
+      <p>Permanently remove a project and all related data</p>
+    </div>
+    <div class="form-card">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Select Project to Delete</label>
+        <div class="select-wrap"><select id="dp-project"><option>Loading...</option></select></div>
+      </div>
+      <div class="alert warning">⚠️ This will permanently delete the project and all its ROCKs, focus areas, and intern assignments.</div>
+      <label class="confirm-check">
+        <input type="checkbox" id="dp-confirm"/>
+        <span>Yes, I understand and want to permanently delete this project</span>
+      </label>
+      <div style="margin-top:20px;">
+        <button class="btn btn-danger" onclick="deleteProject()">Delete Project</button>
+      </div>
+      <div id="dp-msg"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const SUPABASE_URL = 'https://vtsulckvufhwtgnlfcpy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0c3VsY2t2dWZod3RnbmxmY3B5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTk3ODcsImV4cCI6MjA5NTE3NTc4N30.vvlewEH701bBa56T3pxU4N1_i_flkIL87OgI5IOLTSU';
+
+const headers = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+async function sb(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers, ...options });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.details || `HTTP ${res.status}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ---- NAV ----
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+
+  if (id === 'view-projects') loadProjects();
+  if (id === 'project-details') loadDetailSelect();
+  if (id === 'assign-intern') loadAssignInternSelects();
+  if (id === 'assign-focus') loadAssignFocusSelect();
+  if (id === 'add-rock') loadProjectSelect('ar-project');
+  if (id === 'delete-project') loadProjectSelect('dp-project');
+}
+
+// ---- STATUS BADGE ----
+function badge(status) {
+  const cls = status ? status.toLowerCase() : '';
+  return `<span class="badge ${cls}">${status || '—'}</span>`;
+}
+
+// ---- VIEW PROJECTS ----
+let allProjects = [];
+
+async function loadProjects() {
+  document.getElementById('projects-table-wrap').innerHTML = '<div class="loading"><div class="spinner"></div>Loading projects...</div>';
+  try {
+    const data = await sb('projects?select=project_id,business_name,client_name,project_status,categories(category_name)&order=project_id');
+    allProjects = data.map(p => ({
+      project_id: p.project_id,
+      business_name: p.business_name,
+      client_name: p.client_name,
+      project_status: p.project_status,
+      category_name: p.categories?.category_name || '—'
+    }));
+    updateMetrics();
+    filterProjects();
+  } catch (e) {
+    document.getElementById('projects-table-wrap').innerHTML = `<div class="empty-state">Error loading projects: ${e.message}</div>`;
+  }
+}
+
+function updateMetrics() {
+  document.getElementById('m-total').textContent = allProjects.length;
+  document.getElementById('m-green').textContent = allProjects.filter(p => p.project_status === 'Green').length;
+  document.getElementById('m-yellow').textContent = allProjects.filter(p => p.project_status === 'Yellow').length;
+  document.getElementById('m-red').textContent = allProjects.filter(p => p.project_status === 'Red').length;
+}
+
+function filterProjects() {
+  const cat = document.getElementById('category-filter').value;
+  const filtered = cat === 'All' ? allProjects : allProjects.filter(p => p.category_name === cat);
+  renderProjectTable(filtered, 'projects-table-wrap');
+}
+
+function renderProjectTable(data, containerId) {
+  const wrap = document.getElementById(containerId);
+  if (!data.length) { wrap.innerHTML = '<div class="empty-state">No projects found.</div>'; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>ID</th><th>Business Name</th><th>Client Name</th><th>Category</th><th>Status</th></tr></thead>
+    <tbody>${data.map(p => `<tr>
+      <td>${p.project_id}</td>
+      <td>${p.business_name}</td>
+      <td>${p.client_name}</td>
+      <td>${p.category_name}</td>
+      <td>${badge(p.project_status)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ---- SEARCH ----
+async function searchProject() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  document.getElementById('search-results').innerHTML = '<div class="loading"><div class="spinner"></div>Searching...</div>';
+  try {
+    const data = await sb(`projects?select=project_id,business_name,client_name,project_status,categories(category_name)&business_name=ilike.*${encodeURIComponent(q)}*&order=project_id`);
+    const results = data.map(p => ({
+      project_id: p.project_id, business_name: p.business_name,
+      client_name: p.client_name, project_status: p.project_status,
+      category_name: p.categories?.category_name || '—'
+    }));
+    const div = document.createElement('div');
+    div.id = 'search-results';
+    div.className = 'table-wrap';
+    document.getElementById('search-results').outerHTML = `<div id="search-results" class="table-wrap"></div>`;
+    renderProjectTable(results, 'search-results');
+    if (!results.length) document.getElementById('search-results').innerHTML = '<div class="empty-state">No matching projects found.</div>';
+  } catch (e) {
+    document.getElementById('search-results').innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+  }
+}
+
+// ---- PROJECT DETAILS ----
+async function loadDetailSelect() {
+  const sel = document.getElementById('detail-project-select');
+  try {
+    const data = await sb('projects?select=project_id,business_name&order=project_id');
+    sel.innerHTML = data.length
+      ? data.map(p => `<option value="${p.project_id}">${p.project_id} – ${p.business_name}</option>`).join('')
+      : '<option value="">No projects found</option>';
+    if (data.length) loadProjectDetails();
+  } catch (e) { sel.innerHTML = `<option>Error: ${e.message}</option>`; }
+}
+
+async function loadProjectDetails() {
+  const id = document.getElementById('detail-project-select').value;
+  if (!id) return;
+  const el = document.getElementById('project-details-content');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  try {
+    const [proj, interns, focus, rocks] = await Promise.all([
+      sb(`projects?select=*,categories(category_name)&project_id=eq.${id}`),
+      sb(`project_interns?select=interns(intern_name,intern_email,intern_role)&project_id=eq.${id}`),
+      sb(`project_focus_areas?select=focus_area_id,focus_areas(focus_area_name)&project_id=eq.${id}`),
+      sb(`rocks?select=*&project_id=eq.${id}&order=rock_id`)
+    ]);
+    const p = proj[0];
+    if (!p) { el.innerHTML = '<div class="empty-state">Project not found.</div>'; return; }
+
+    const internRows = interns.map(i => i.interns);
+    const focusNames = focus.map(f => f.focus_areas?.focus_area_name).filter(Boolean);
+
+    el.innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Business Name</div><div class="detail-value">${p.business_name}</div></div>
+        <div class="detail-item"><div class="detail-label">Client Name</div><div class="detail-value">${p.client_name}</div></div>
+        <div class="detail-item"><div class="detail-label">Advisor</div><div class="detail-value">${p.advisor_name || '—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Client Tier</div><div class="detail-value">${p.client_tier || '—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">${p.categories?.category_name || '—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Revenue</div><div class="detail-value">${p.revenue != null ? '$' + Number(p.revenue).toLocaleString() : '—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${badge(p.project_status)}</div></div>
+        <div class="detail-item"><div class="detail-label">SOW Reference</div><div class="detail-value">${p.sow_reference || '—'}</div></div>
+        <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Key Technology</div><div class="detail-value">${p.key_technology || '—'}</div></div>
+        <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Client Engagement</div><div class="detail-value">${p.client_engagement || '—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Created At</div><div class="detail-value">${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</div></div>
+      </div>
+
+      <div class="section-title">Assigned Interns</div>
+      ${internRows.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+        <tbody>${internRows.map(i => `<tr><td>${i.intern_name}</td><td>${i.intern_email || '—'}</td><td>${i.intern_role || '—'}</td></tr>`).join('')}</tbody>
+      </table></div>` : '<div class="alert info">No interns assigned yet.</div>'}
+
+      <div class="section-title">Focus Areas</div>
+      ${focusNames.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;">${focusNames.map(f => `<span class="multi-option selected">${f}</span>`).join('')}</div>` : '<div class="alert info">No focus areas assigned yet.</div>'}
+
+      <div class="section-title">ROCKs / OKRs</div>
+      ${rocks.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Objective</th><th>Key Result</th><th>Status</th></tr></thead>
+        <tbody>${rocks.map(r => `<tr><td>${r.objective}</td><td>${r.key_result}</td><td>${badge(r.status)}</td></tr>`).join('')}</tbody>
+      </table></div>` : '<div class="alert info">No ROCKs added yet.</div>'}
+    `;
+  } catch(e) { el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
+}
+
+// ---- ADD PROJECT ----
+async function addProject() {
+  const business = document.getElementById('ap-business').value.trim();
+  const client = document.getElementById('ap-client').value.trim();
+  if (!business || !client) { showMsg('ap-msg', 'Business name and client name are required.', 'error'); return; }
+  try {
+    const cats = await sb(`categories?category_name=eq.${document.getElementById('ap-category').value}&select=category_id`);
+    const category_id = cats[0]?.category_id;
+    await sb('projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        business_name: business,
+        client_name: client,
+        advisor_name: document.getElementById('ap-advisor').value.trim() || null,
+        client_tier: document.getElementById('ap-tier').value.trim() || null,
+        category_id,
+        revenue: parseFloat(document.getElementById('ap-revenue').value) || null,
+        client_engagement: document.getElementById('ap-engagement').value.trim() || null,
+        key_technology: document.getElementById('ap-tech').value.trim() || null,
+        sow_reference: document.getElementById('ap-sow').value.trim() || null,
+        project_status: document.getElementById('ap-status').value
+      })
+    });
+    showMsg('ap-msg', 'Project added successfully!', 'success');
+    ['ap-business','ap-client','ap-advisor','ap-tier','ap-revenue','ap-engagement','ap-tech','ap-sow'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) { showMsg('ap-msg', `Error: ${e.message}`, 'error'); }
+}
+
+// ---- ADD INTERN ----
+async function addIntern() {
+  const name = document.getElementById('ai-name').value.trim();
+  if (!name) { showMsg('ai-msg', 'Intern name is required.', 'error'); return; }
+  try {
+    await sb('interns', {
+      method: 'POST',
+      body: JSON.stringify({
+        intern_name: name,
+        intern_email: document.getElementById('ai-email').value.trim() || null,
+        intern_role: document.getElementById('ai-role').value.trim() || null
+      })
+    });
+    showMsg('ai-msg', 'Intern added successfully!', 'success');
+    ['ai-name','ai-email','ai-role'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) { showMsg('ai-msg', `Error: ${e.message}`, 'error'); }
+}
+
+// ---- ASSIGN INTERN ----
+async function loadAssignInternSelects() {
+  try {
+    const [projects, interns] = await Promise.all([
+      sb('projects?select=project_id,business_name&order=project_id'),
+      sb('interns?select=intern_id,intern_name&order=intern_id')
+    ]);
+    document.getElementById('asi-project').innerHTML = projects.map(p => `<option value="${p.project_id}">${p.project_id} – ${p.business_name}</option>`).join('') || '<option>No projects</option>';
+    document.getElementById('asi-intern').innerHTML = interns.map(i => `<option value="${i.intern_id}">${i.intern_id} – ${i.intern_name}</option>`).join('') || '<option>No interns</option>';
+  } catch(e) { console.error(e); }
+}
+
+async function assignIntern() {
+  const project_id = parseInt(document.getElementById('asi-project').value);
+  const intern_id = parseInt(document.getElementById('asi-intern').value);
+  try {
+    await sb('project_interns', { method: 'POST', body: JSON.stringify({ project_id, intern_id }) });
+    showMsg('asi-msg', 'Intern assigned successfully!', 'success');
+  } catch(e) {
+    const msg = e.message.includes('duplicate') ? 'This intern is already assigned to that project.' : `Error: ${e.message}`;
+    showMsg('asi-msg', msg, 'error');
+  }
+}
+
+// ---- ASSIGN FOCUS AREAS ----
+async function loadAssignFocusSelect() {
+  try {
+    const projects = await sb('projects?select=project_id,business_name&order=project_id');
+    document.getElementById('af-project').innerHTML = projects.map(p => `<option value="${p.project_id}">${p.project_id} – ${p.business_name}</option>`).join('') || '<option>No projects</option>';
+  } catch(e) { console.error(e); }
+}
+
+function toggleFocus(el) { el.classList.toggle('selected'); }
+
+async function assignFocusAreas() {
+  const project_id = parseInt(document.getElementById('af-project').value);
+  const selected = [...document.querySelectorAll('#af-focus-options .multi-option.selected')].map(el => parseInt(el.dataset.id));
+  if (!selected.length) { showMsg('af-msg', 'Please select at least one focus area.', 'error'); return; }
+  try {
+    for (const focus_area_id of selected) {
+      await sb('project_focus_areas', {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+        body: JSON.stringify({ project_id, focus_area_id })
+      });
+    }
+    showMsg('af-msg', 'Focus areas assigned successfully!', 'success');
+    document.querySelectorAll('#af-focus-options .multi-option').forEach(el => el.classList.remove('selected'));
+  } catch(e) { showMsg('af-msg', `Error: ${e.message}`, 'error'); }
+}
+
+// ---- ADD ROCK ----
+async function loadProjectSelect(selectId) {
+  try {
+    const projects = await sb('projects?select=project_id,business_name&order=project_id');
+    document.getElementById(selectId).innerHTML = projects.map(p => `<option value="${p.project_id}">${p.project_id} – ${p.business_name}</option>`).join('') || '<option>No projects</option>';
+  } catch(e) { console.error(e); }
+}
+
+async function addRock() {
+  const project_id = parseInt(document.getElementById('ar-project').value);
+  const objective = document.getElementById('ar-objective').value.trim();
+  const key_result = document.getElementById('ar-keyresult').value.trim();
+  if (!objective || !key_result) { showMsg('ar-msg', 'Objective and key result are required.', 'error'); return; }
+  try {
+    await sb('rocks', { method: 'POST', body: JSON.stringify({ project_id, objective, key_result, status: document.getElementById('ar-status').value }) });
+    showMsg('ar-msg', 'ROCK added successfully!', 'success');
+    document.getElementById('ar-objective').value = '';
+    document.getElementById('ar-keyresult').value = '';
+  } catch(e) { showMsg('ar-msg', `Error: ${e.message}`, 'error'); }
+}
+
+// ---- DELETE PROJECT ----
+async function deleteProject() {
+  if (!document.getElementById('dp-confirm').checked) { showMsg('dp-msg', 'Please check the confirmation box first.', 'error'); return; }
+  const id = document.getElementById('dp-project').value;
+  if (!id) return;
+  try {
+    await sb(`projects?project_id=eq.${id}`, { method: 'DELETE' });
+    showMsg('dp-msg', 'Project deleted successfully.', 'success');
+    document.getElementById('dp-confirm').checked = false;
+    await loadProjectSelect('dp-project');
+  } catch(e) { showMsg('dp-msg', `Error: ${e.message}`, 'error'); }
+}
+
+// ---- HELPERS ----
+function showMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// Init
+loadProjects();
+</script>
+</body>
+</html>
